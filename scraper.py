@@ -1,6 +1,7 @@
 from lxml import etree
 import requests
 import re
+import csv
 
 
 def genPyldArea (area):
@@ -148,6 +149,121 @@ def getPage (url, payload=None):
   return page
 
 
+def stripChar (line):
+  """Strip unwanted characters from line
+  """
+
+  newLine =  ''.join(c for c in line if (c.isalnum() or (c in '\' !.,:')))
+  newLine = ' '.join(newLine.split())
+  if newLine.endswith(','):
+    newLine = newLine[:-1]
+
+  return newLine
+
+
+def parseInfo (infoDesc, listInfo):
+  """Parse main list of info
+  """
+
+  info = {}
+
+  # Initialize dictionary
+  for d in infoDesc:
+    info[d] = 'NA'
+
+  # Fill dictionary
+  info['description'] = listInfo[4]
+  for key, val in zip(listInfo[5::2], listInfo[6::2]):
+    for d in infoDesc:
+      if d in key.lower():
+        info[d] = val
+        break
+
+  return info
+
+
+def parsePage (html):
+  """Parse page
+  """
+
+  infoDesc = [
+    'description',
+    'mls',
+    'area',
+    'type',
+    'frontage',
+    'basement',
+    'depth',
+    'bedrooms',
+    'age',
+    'bathrooms',
+    'fee'
+  ]
+
+  info = {}
+
+  # Get address and price
+  listRaw = html.xpath('//b/text()')
+  listRaw = [stripChar(l) for l in listRaw]
+  info['address'] = listRaw[1]
+  info['price']   = listRaw[2]
+
+  # Get other info
+  listRaw = html.xpath('//font/text()')
+  listRaw = [stripChar(l) for l in listRaw]
+  info = {**info, **parseInfo(infoDesc, listRaw)}
+
+  # Clean up
+  for key, val in info.items():
+    if   val.lower() == 'not available':
+      val = 'NA'
+    elif key == 'bathrooms':
+      val = val.replace(':', ' ').replace(',', ' ').split()
+
+      try:
+        t = int(val[1])
+      except:
+        t = 0
+
+      try:
+        h = int(val[3])
+      except:
+        h = 0
+
+      val = t + (h*0.5)
+    elif key not in ['description', 'address']:
+      val = val.replace(',', '')
+      val = [w for w in val.split() if w not in ['sqft', 'sqft.']]
+      val = ' '.join(val)
+
+    info[key] = val
+
+  return info
+
+
+def writeCsv (fName, listDict):
+  """Turn list of dictionary into CSV
+  """
+
+  # Open file
+  with open(fName, 'w', newline='') as csvfile:
+    cwr = csv.writer(csvfile)
+
+    # Get header
+    keys = [k.title() for k in list(listDict[0])]
+    keys = sorted(keys)
+    cwr.writerow(keys)
+
+    # Build/write rows
+    for d in listDict:
+      row = []
+      for k in keys:
+        row.append(d[k.lower()])
+      cwr.writerow(row)
+
+  return 'Ok!'
+
+
 def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
   """Dive deep into the web
   """
@@ -163,8 +279,6 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
 
   # Parse HTML
   listDetails = generateDetails(html)
-  print(len(listDetails), listDetails)
-
   nextUrl = generateNext(html)
 
   while nextUrl != '':
@@ -172,7 +286,19 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
     html = etree.HTML(page.text)
     listDetails += generateDetails(html)
     nextUrl = generateNext(html)
-    print(len(listDetails), listDetails)
+
+  # Get each page with details
+  info = []
+  for detUrl in listDetails:
+    page = getPage(detUrl)
+    html = etree.HTML(page.text)
+    info.append(parsePage(html))
+    info[-1]['url'] = page.url
+
+  # Create csv
+  writeCsv('text.csv', info)
+
+  return 'Ok!'
 
 
 # Search area
@@ -193,7 +319,7 @@ PTYTID = 'apartment'
 
 # Min/max price
 MNPRC = 200000
-MXPRC = 400000
+MXPRC = 300000
 
 
 traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC)
