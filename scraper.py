@@ -153,7 +153,7 @@ def stripChar (line):
   """Strip unwanted characters from line
   """
 
-  newLine =  ''.join(c for c in line if (c.isalnum() or (c in '\' !.,:')))
+  newLine =  ''.join(c for c in line if (c.isalnum() or (c in '\' /!.,:')))
   newLine = ' '.join(newLine.split())
   if newLine.endswith(','):
     newLine = newLine[:-1]
@@ -213,6 +213,11 @@ def parsePage (html):
   listRaw = [stripChar(l) for l in listRaw]
   info = {**info, **parseInfo(infoDesc, listRaw)}
 
+  # Get features
+  listRaw = html.xpath('//li/text()')
+  listRaw = [stripChar(l).capitalize() for l in listRaw]
+  info['features'] = ', '.join(sorted(listRaw))
+
   # Clean up
   for key, val in info.items():
     if   val.lower() == 'not available':
@@ -231,7 +236,7 @@ def parsePage (html):
         h = 0
 
       val = t + (h*0.5)
-    elif key not in ['description', 'address']:
+    elif key not in ['address', 'description', 'features']:
       val = val.replace(',', '')
       val = [w for w in val.split() if w not in ['sqft', 'sqft.']]
       val = ' '.join(val)
@@ -250,7 +255,7 @@ def writeCsv (fName, listDict):
     cwr = csv.writer(csvfile)
 
     # Get header
-    keys = [k.title() for k in list(listDict[0])]
+    keys = [k.capitalize() for k in list(listDict[0])]
     keys = sorted(keys)
     cwr.writerow(keys)
 
@@ -315,11 +320,11 @@ MNBD = 0
 MNBT = 0
 
 # Search type
-PTYTID = 'apartment'
+PTYTID = 'house'
 
 # Min/max price
 MNPRC = 200000
-MXPRC = 300000
+MXPRC = 3000000
 
 
 traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC)
