@@ -155,14 +155,19 @@ def parseInfo (infoDesc, listInfo):
   # Initialize dictionary
   info = {d: 'NA' for d in infoDesc}
 
-  # Find starting index
+  # Find starting index and description
   for i, val in enumerate(listInfo):
     if (val != '') and (not val.startswith(':')):
+      if val.lower() == 'mls':
+        # No description
+        info['description'] = 'NA'
+      else:
+        info['description'] = listInfo[i]
+        i += 1 # To re-align MLS
       break
 
   # Fill dictionary
-  info['description'] = listInfo[i]
-  for key, val in zip(listInfo[(i+1)::2], listInfo[(i+2)::2]):
+  for key, val in zip(listInfo[i::2], listInfo[i+1::2]):
     key = key.lower().replace(':', '')
 
     for d in infoDesc:
@@ -178,7 +183,6 @@ def parsePage (html):
   """
 
   infoDesc = [
-    'description',
     'mls',
     'finished floor area',
     'property type',
@@ -188,7 +192,7 @@ def parsePage (html):
     'bedrooms',
     'age',
     'bathrooms',
-    'fee'
+    'maintenance fee'
   ]
 
   info = {}
@@ -328,5 +332,5 @@ MNPRC = 200000
 MXPRC = 500000
 
 
-traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, '_'.join(AREA, PTYTID, '.csv'))
+traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, '_'.join([AREA, PTYTID]) + '.csv')
 
