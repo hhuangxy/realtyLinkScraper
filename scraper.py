@@ -18,12 +18,12 @@ def genPyldArea (area):
       'imdp' : '16',
       'AIDL' : '324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,340,341,342,343,344,428,429,430'
     }
-  elif area.lower() == 'newWestminster':
+  elif area.lower() == 'newwestminster':
     payload = {
       'imdp' : '12',
       'AIDL' : '1539,1540,283,284,285,286,287,288,289,290,291,292,293,294,295'
     }
-  elif area.lower() == 'portCoquitlam':
+  elif area.lower() == 'portcoquitlam':
     payload = {
       'imdp' : '17',
       'AIDL' : '1541,878,345,346,347,348,349,350,351,352,433'
