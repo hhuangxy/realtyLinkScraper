@@ -265,20 +265,27 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, fName):
   # Build payload
   payload = generatePayload(area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc)
 
-  # Get first page
-  page = getPage('http://www.realtylink.org/prop_search/Summary.cfm', payload)
-  print(page.url)
+  first       = True
+  numBytes    = 0
+  listDetails = []
+  nextUrl     = 'http://www.realtylink.org/prop_search/Summary.cfm'
 
-  # Convert to HTML
-  html = etree.HTML(page.text)
-
-  # Parse HTML
-  listDetails = generateDetails(html)
-  nextUrl = generateNext(html)
-
+  # Get pages
   while nextUrl != '':
-    page = getPage(nextUrl)
+    if first:
+      page = getPage(nextUrl, payload)
+      print(page.url)
+      first = False
+    else:
+      page = getPage(nextUrl)
+
+    # Calculate number of bytes
+    numBytes += len(page.text)
+
+    # Convert to HTML
     html = etree.HTML(page.text)
+
+    # Parse HTML
     listDetails += generateDetails(html)
     nextUrl = generateNext(html)
 
@@ -286,9 +293,13 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, fName):
   info = []
   for detUrl in listDetails:
     page = getPage(detUrl)
+    numBytes += len(page.text)
     html = etree.HTML(page.text)
     info.append(parsePage(html))
     info[-1]['url'] = page.url
+
+  # Number of MBs used
+  print('Number of KBs:', numBytes / 1024.0)
 
   # Create csv
   writeCsv(fName, info)
@@ -310,12 +321,12 @@ MNBD = 0
 MNBT = 0
 
 # Search type
-PTYTID = 'house'
+PTYTID = 'apartment'
 
 # Min/max price
-MNPRC =  200000
-MXPRC = 1500000
+MNPRC = 200000
+MXPRC = 500000
 
 
-traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, 'test2.csv')
+traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, '_'.join(AREA, PTYTID, '.csv'))
 
