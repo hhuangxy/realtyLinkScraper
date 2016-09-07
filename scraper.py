@@ -122,11 +122,7 @@ def generateNext (html):
   for raw in listRaw:
     if raw.endswith('Next&'):
       next = baseUrl + raw
-    else:
-      continue
-
-    # Only use the first one
-    break
+      break # Only use the first one
 
   return next
 
@@ -136,6 +132,7 @@ def getPage (url, payload=None):
   """
 
   page = requests.get(url, params=payload)
+
   return page
 
 
@@ -155,11 +152,8 @@ def parseInfo (infoDesc, listInfo):
   """Parse main list of info
   """
 
-  info = {}
-
   # Initialize dictionary
-  for d in infoDesc:
-    info[d] = 'NA'
+  info = {d: 'NA' for d in infoDesc}
 
   # Find starting index
   for i, val in enumerate(listInfo):
@@ -169,8 +163,10 @@ def parseInfo (infoDesc, listInfo):
   # Fill dictionary
   info['description'] = listInfo[i]
   for key, val in zip(listInfo[(i+1)::2], listInfo[(i+2)::2]):
+    key = key.lower().replace(':', '')
+
     for d in infoDesc:
-      if d in key.lower():
+      if d == key:
         info[d] = val
         break
 
@@ -184,11 +180,11 @@ def parsePage (html):
   infoDesc = [
     'description',
     'mls',
-    'area',
-    'type',
-    'frontage',
+    'finished floor area',
+    'property type',
+    'lot frontage',
     'basement',
-    'depth',
+    'lot depth',
     'bedrooms',
     'age',
     'bathrooms',
@@ -203,15 +199,15 @@ def parsePage (html):
   info['address'] = listRaw[1]
   info['price']   = listRaw[2]
 
-  # Get other info
-  listRaw = html.xpath('//font/text()')
-  listRaw = [stripChar(l) for l in listRaw]
-  info = {**info, **parseInfo(infoDesc, listRaw)}
-
   # Get features
   listRaw = html.xpath('//li/text()')
   listRaw = [stripChar(l).capitalize() for l in listRaw]
   info['features'] = ', '.join(sorted(listRaw))
+
+  # Get other info
+  listRaw = html.xpath('//font/text()')
+  listRaw = [stripChar(l) for l in listRaw]
+  info = {**info, **parseInfo(infoDesc, listRaw)}
 
   # Clean up
   for key, val in info.items():
@@ -250,15 +246,13 @@ def writeCsv (fName, listDict):
     cwr = csv.writer(csvfile)
 
     # Get header
-    keys = [k.capitalize() for k in list(listDict[0])]
+    keys = [k.title() for k in list(listDict[0])]
     keys = sorted(keys)
     cwr.writerow(keys)
 
     # Build/write rows
     for d in listDict:
-      row = []
-      for k in keys:
-        row.append(d[k.lower()])
+      row = [d[k.lower()] for k in keys]
       cwr.writerow(row)
 
   return 'Ok!'
@@ -320,8 +314,8 @@ PTYTID = 'house'
 
 # Min/max price
 MNPRC =  200000
-MXPRC = 3000000
+MXPRC = 1500000
 
 
-traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, 'test.csv')
+traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, 'test2.csv')
 
