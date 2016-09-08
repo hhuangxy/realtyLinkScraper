@@ -2,6 +2,8 @@ from lxml import etree
 import requests
 import re
 import csv
+import datetime
+import os
 
 
 def genPyldArea (area):
@@ -262,7 +264,7 @@ def writeCsv (fName, listDict):
   return 'Ok!'
 
 
-def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, fName):
+def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, outDir):
   """Dive deep into the web
   """
 
@@ -274,36 +276,40 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, fName):
   listDetails = []
   nextUrl     = 'http://www.realtylink.org/prop_search/Summary.cfm'
 
-  # Get pages
-  while nextUrl != '':
-    if first:
-      page = getPage(nextUrl, payload)
-      print(page.url)
-      first = False
-    else:
-      page = getPage(nextUrl)
+  # Setup logging
+  fName = '%s/%s_%s.csv' % (outDir, area, ptytid)
+  with open('%s/log.txt' % outDir, 'a') as fLog:
 
-    # Calculate number of bytes
-    numBytes += len(page.text)
+    # Get pages
+    while nextUrl != '':
+      if first:
+        page = getPage(nextUrl, payload)
+        fLog.write(page.url + '\n')
+        first = False
+      else:
+        page = getPage(nextUrl)
 
-    # Convert to HTML
-    html = etree.HTML(page.text)
+      # Calculate number of bytes
+      numBytes += len(page.text)
 
-    # Parse HTML
-    listDetails += generateDetails(html)
-    nextUrl = generateNext(html)
+      # Convert to HTML
+      html = etree.HTML(page.text)
 
-  # Get each page with details
-  info = []
-  for detUrl in listDetails:
-    page = getPage(detUrl)
-    numBytes += len(page.text)
-    html = etree.HTML(page.text)
-    info.append(parsePage(html))
-    info[-1]['url'] = page.url
+      # Parse HTML
+      listDetails += generateDetails(html)
+      nextUrl = generateNext(html)
 
-  # Number of MBs used
-  print('Number of KBs:', numBytes / 1024.0)
+    # Get each page with details
+    info = []
+    for detUrl in listDetails:
+      page = getPage(detUrl)
+      numBytes += len(page.text)
+      html = etree.HTML(page.text)
+      info.append(parsePage(html))
+      info[-1]['url'] = page.url
+
+    # Number of KBs used
+    fLog.write('Number of KBs: %f\n' % (numBytes / 1024))
 
   # Create csv
   writeCsv(fName, info)
@@ -311,8 +317,12 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, fName):
   return 'Ok!'
 
 
-# Search area
-AREA = 'burnaby'
+# Output directory
+outDir = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+os.mkdir(outDir)
+
+# Area list
+areaList = ['burnaby', 'coquitlam', 'newwestminster', 'portcoquitlam', 'richmond', 'vancouver']
 
 # Min/max age
 MNAGE = 0
@@ -328,9 +338,9 @@ MNBT = 0
 PTYTID = 'apartment'
 
 # Min/max price
-MNPRC = 200000
-MXPRC = 500000
+MNPRC = 0
+MXPRC = 450000
 
-
-traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, '_'.join([AREA, PTYTID]) + '.csv')
+for AREA in areaList:
+  traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, outDir)
 
