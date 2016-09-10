@@ -10,40 +10,38 @@ def genPyldArea (area):
   """Generates payload - area
   """
 
+  baseUrl = 'http://www.realtylink.org/prop_search/AreaSelect.cfm?Branch=True'
+
   if   area.lower() == 'burnaby':
-    payload = {
-      'imdp' : '11',
-      'AIDL' : '248,249,250,251,253,254,255,256,257,258,259,260,261,856,857,858,262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282'
-    }
+    imdp = '11'
+
   elif area.lower() == 'coquitlam':
-    payload = {
-      'imdp' : '16',
-      'AIDL' : '324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,340,341,342,343,344,428,429,430'
-    }
+    imdp = '16'
+
   elif area.lower() == 'newwestminster':
-    payload = {
-      'imdp' : '12',
-      'AIDL' : '1539,1540,283,284,285,286,287,288,289,290,291,292,293,294,295'
-    }
+    imdp = '12'
+
   elif area.lower() == 'portcoquitlam':
-    payload = {
-      'imdp' : '17',
-      'AIDL' : '1541,878,345,346,347,348,349,350,351,352,433'
-    }
+    imdp = '17'
+
   elif area.lower() == 'richmond':
-    payload = {
-      'imdp' : '13',
-      'AIDL' : '915,916,917,918,919,920,921,922,923,924,925,926,927,928,929,930,931,932,933,934,935,936,937,938,939,940,941,942,943,310'
-    }
+    imdp = '13'
+
   elif area.lower() == 'vancouver':
-    payload = {
-      'imdp' : '10',
-      'AIDL' : '233,234,236,235,237,238,239,240,241,242,243,244,245,246,247,855,432'
-    }
+    imdp = '10'
+
   else:
     raise
 
-  return payload
+  # Post and generate area ID list
+  r = requests.post(baseUrl, data={'ERTA' : imdp})
+  match = re.search(r'AIDL=(.*?)&' , r.url, re.I)
+  if match:
+    AIDL = match.group(1)
+  else:
+    raise
+
+  return {'imdp': imdp, 'AIDL' : AIDL}
 
 
 def genPyldType (type):
@@ -284,7 +282,7 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, outDir)
     while nextUrl != '':
       if first:
         page = getPage(nextUrl, payload)
-        fLog.write(page.url + '\n')
+        fLog.write(page.url.replace('%2C', ',') + '\n')
         first = False
       else:
         page = getPage(nextUrl)
@@ -309,10 +307,15 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, outDir)
       info[-1]['url'] = page.url
 
     # Number of KBs used
-    fLog.write('Number of KBs: %f\n' % (numBytes / 1024))
+    fLog.write('    Number of KBs: %f\n' % (numBytes / 1024))
+
+    # Check empty info
+    if not info:
+      fLog.write('    No properties were found\n')
 
   # Create csv
-  writeCsv(fName, info)
+  if info:
+    writeCsv(fName, info)
 
   return 'Ok!'
 
@@ -324,6 +327,9 @@ os.mkdir(outDir)
 # Area list
 areaList = ['burnaby', 'coquitlam', 'newwestminster', 'portcoquitlam', 'richmond', 'vancouver']
 
+# Type list
+typeList = ['apartment', 'townhouse', 'house']
+
 # Min/max age
 MNAGE = 0
 MXAGE = 10
@@ -334,13 +340,11 @@ MNBD = 0
 # Min bathroom
 MNBT = 0
 
-# Search type
-PTYTID = 'apartment'
-
 # Min/max price
 MNPRC = 0
 MXPRC = 450000
 
 for AREA in areaList:
-  traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, outDir)
+  for PTYTID in typeList:
+    traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, outDir)
 
