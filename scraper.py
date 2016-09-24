@@ -24,6 +24,9 @@ def genPyldArea (area):
   elif area.lower() == 'portcoquitlam':
     imdp = '17'
 
+  elif area.lower() == 'portmoody':
+    imdp = '15'
+
   elif area.lower() == 'richmond':
     imdp = '13'
 
@@ -323,7 +326,7 @@ outDir = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
 os.mkdir(outDir)
 
 # Area list
-areaList = ['burnaby', 'coquitlam', 'newwestminster', 'portcoquitlam', 'richmond', 'vancouver']
+areaList = ['burnaby', 'coquitlam', 'newWestminster', 'portCoquitlam', 'portMoody', 'richmond', 'vancouver']
 
 # Type list
 typeList = ['apartment', 'townhouse', 'house']
