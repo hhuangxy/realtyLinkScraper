@@ -35,7 +35,7 @@ def genPyldArea (area):
 
   # Post and generate area ID list
   r = requests.post(baseUrl, data={'ERTA' : imdp})
-  match = re.search(r'AIDL=(.*?)&' , r.url, re.I)
+  match = re.search(r'AIDL=(.*?)&', r.url, re.I)
   if match:
     AIDL = match.group(1)
   else:
@@ -140,10 +140,8 @@ def stripChar (line):
   """Strip unwanted characters from line
   """
 
-  newLine =  ''.join(c for c in line if (c.isalnum() or (c in ' \'/!:",.')))
-  newLine = ' '.join(newLine.split())
-  if newLine.endswith(','):
-    newLine = newLine[:-1]
+  newLine =  ''.join(c if (32 <= ord(c) and ord(c) <= 255) else ' ' for c in line)
+  newLine = ' '.join(newLine.strip(',').split())
 
   return newLine
 
@@ -214,11 +212,12 @@ def parsePage (html):
   info = {**info, **parseInfo(infoDesc, listRaw)}
 
   # Clean up
+  rExp = re.compile(r'(:|,|sqft\.?)', re.I)
   for key, val in info.items():
-    if   val.lower() == 'not available':
+    if val.lower() == 'not available':
       val = 'NA'
     elif key == 'bathrooms':
-      val = val.replace(':', ' ').replace(',', ' ').split()
+      val = rExp.sub(' ', val).split()
 
       try:
         t = int(val[1])
@@ -232,8 +231,7 @@ def parsePage (html):
 
       val = t + (h*0.5)
     elif key not in ['address', 'description', 'features']:
-      val = val.replace(',', '')
-      val = [w for w in val.split() if w not in ['sqft', 'sqft.']]
+      val = rExp.sub('', val).split()
       val = ' '.join(val)
 
     info[key] = val
