@@ -274,7 +274,7 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
   numBytes    = 0
   listDetails = []
   nextUrl     = 'http://www.realtylink.org/prop_search/Summary.cfm'
-  log         = ['%s %s' % (area.title(), ptytid.title())]
+  log         = [('%s %s' % (area, ptytid)).title()]
 
   # Get pages
   while nextUrl != '':
