@@ -263,7 +263,7 @@ def writeCsv (fName, listDict):
   return 'Ok!'
 
 
-def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, outDir):
+def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
   """Dive deep into the web
   """
 
@@ -274,56 +274,51 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc, outDir)
   numBytes    = 0
   listDetails = []
   nextUrl     = 'http://www.realtylink.org/prop_search/Summary.cfm'
+  log         = ['%s %s' % (area.title(), ptytid.title())]
 
-  # Setup logging
-  fName = '%s/%s_%s.csv' % (outDir, area, ptytid)
-  with open('%s/log.txt' % outDir, 'a') as fLog:
+  # Get pages
+  while nextUrl != '':
+    if first:
+      page = getPage(nextUrl, payload)
+      log.append(page.url.replace('%2C', ','))
+      first = False
+    else:
+      page = getPage(nextUrl)
 
-    # Get pages
-    while nextUrl != '':
-      if first:
-        page = getPage(nextUrl, payload)
-        fLog.write(page.url.replace('%2C', ',') + '\n')
-        first = False
-      else:
-        page = getPage(nextUrl)
+    # Calculate number of bytes
+    numBytes += len(page.text)
 
-      # Calculate number of bytes
-      numBytes += len(page.text)
+    # Convert to HTML
+    html = etree.HTML(page.text)
 
-      # Convert to HTML
-      html = etree.HTML(page.text)
+    # Parse HTML
+    listDetails += generateDetails(html)
+    nextUrl = generateNext(html)
 
-      # Parse HTML
-      listDetails += generateDetails(html)
-      nextUrl = generateNext(html)
+  # Get each page with details
+  info = []
+  for detUrl in listDetails:
+    page = getPage(detUrl)
+    numBytes += len(page.text)
+    html = etree.HTML(page.text)
+    info.append(parsePage(html))
+    info[-1]['area'] = area.title()
+    info[-1]['type'] = ptytid.title()
+    info[-1]['url']  = page.url
 
-    # Get each page with details
-    info = []
-    for detUrl in listDetails:
-      page = getPage(detUrl)
-      numBytes += len(page.text)
-      html = etree.HTML(page.text)
-      info.append(parsePage(html))
-      info[-1]['url'] = page.url
+  # Number of KBs used
+  log.append('    Number of KBs: %f' % (numBytes / 1024))
 
-    # Number of KBs used
-    fLog.write('    Number of KBs: %f\n' % (numBytes / 1024))
+  # Check empty info
+  if not info:
+    log.append('    No properties were found')
 
-    # Check empty info
-    if not info:
-      fLog.write('    No properties were found\n')
-
-  # Create csv
-  if info:
-    writeCsv(fName, info)
-
-  return 'Ok!'
+  return log, info
 
 
 # Output directory
-outDir = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-os.mkdir(outDir)
+timeStamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+os.mkdir(timeStamp)
 
 # Area list
 areaList = ['burnaby', 'coquitlam', 'newWestminster', 'portCoquitlam', 'portMoody', 'richmond', 'vancouver']
@@ -345,7 +340,19 @@ MNBT = 0
 MNPRC = 0
 MXPRC = 450000
 
+log  = []
+info = []
 for AREA in areaList:
   for PTYTID in typeList:
-    traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC, outDir)
+    tLog, tInfo = traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC)
+    log  += tLog
+    info += tInfo
+
+# Setup logging
+with open('%s/%s_log.txt' % (timeStamp, timeStamp), 'w') as fLog:
+  fLog.write('\n'.join(log))
+
+# Create csv
+if info:
+  writeCsv('%s/%s.csv' % (timeStamp, timeStamp), info)
 
