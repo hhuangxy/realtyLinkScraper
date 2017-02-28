@@ -4,7 +4,7 @@ import re
 import csv
 import datetime
 import os
-
+import openpyxl
 
 def genPyldArea (area):
   """Generates payload - area
@@ -263,6 +263,43 @@ def writeCsv (fName, listDict):
   return 'Ok!'
 
 
+def writeXl (fName, listDict):
+  """Turn list of dictionary into Excel
+  """
+
+  s2v = lambda s: int(s) if ('.' not in s) else float(s.replace('$',''))
+
+  # Open file
+  wb = openpyxl.Workbook()
+  ws = wb.active
+
+  # Get header
+  keys = [k.title() for k in list(listDict[0])]
+  keys = sorted(keys)
+  cUrl = keys.index('Url') + 1
+  ws.append(keys)
+
+  # Format
+  cNums = [(keys.index(i) + 1) for i in ['Age', 'Bedrooms', 'Finished Floor Area']]
+  cDola = [(keys.index(i) + 1) for i in ['Maintenance Fee', 'Price']]
+
+  # Build/write rows
+  i = 2
+  for d in listDict:
+    row = [d[k.lower()] for k in keys]
+    ws.append(row)
+    ws.cell(row=i, column=cUrl).hyperlink = ws.cell(row=i, column=cUrl).value
+    ws.cell(row=i, column=cUrl).style = 'Hyperlink'
+    for c in cNums+cDola:
+      ws.cell(row=i, column=c).value = s2v(ws.cell(row=i, column=c).value)
+    for c in cDola:
+      ws.cell(row=i, column=c).number_format = '$#,##0.00_);[Red]($#,##0.00)'
+    i += 1
+
+  wb.save(fName)
+  return 'Ok!'
+
+
 def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
   """Dive deep into the web
   """
@@ -303,7 +340,6 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
     html = etree.HTML(page.text)
     info.append(parsePage(html))
     info[-1]['area'] = area.title()
-    info[-1]['type'] = ptytid.title()
     info[-1]['url']  = page.url
 
   # Number of KBs used
@@ -354,5 +390,6 @@ with open('%s/%s_log.txt' % (timeStamp, timeStamp), 'w') as fLog:
 
 # Create csv
 if info:
-  writeCsv('%s/%s.csv' % (timeStamp, timeStamp), info)
+  #writeCsv('%s/%s.csv' % (timeStamp, timeStamp), info)
+  writeXl('%s/%s.xlsx' % (timeStamp, timeStamp), info)
 
