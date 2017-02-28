@@ -291,7 +291,9 @@ def writeXl (fName, listDict):
     ws.cell(row=i, column=cUrl).hyperlink = ws.cell(row=i, column=cUrl).value
     ws.cell(row=i, column=cUrl).style = 'Hyperlink'
     for c in cNums+cDola:
-      ws.cell(row=i, column=c).value = s2v(ws.cell(row=i, column=c).value)
+      s = ws.cell(row=i, column=c).value
+      if s != 'NA':
+        ws.cell(row=i , column=c).value = s2v(s)
     for c in cDola:
       ws.cell(row=i, column=c).number_format = '$#,##0.00_);[Red]($#,##0.00)'
     i += 1
