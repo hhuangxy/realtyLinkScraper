@@ -121,11 +121,10 @@ def generateNext (html):
   baseUrl = 'http://www.realtylink.org/prop_search/'
   next    = ''
 
-  listRaw = html.xpath("//@href[starts-with(., 'Summary.cfm')]")
-  for raw in listRaw:
-    if raw.endswith('Next&'):
-      next = baseUrl + raw
-      break # Only use the first one
+  img = html.find(".//img[@src='images/property_next.gif']")
+  if img != None:
+    a = img.getparent()
+    next = baseUrl + a.attrib['href']
 
   return next
 
@@ -267,6 +266,7 @@ def writeXl (fName, listDict):
   """Turn list of dictionary into Excel
   """
 
+  # String to Value
   s2v = lambda s: int(s) if ('.' not in s) else float(s.replace('$',''))
 
   # Open file
@@ -284,19 +284,30 @@ def writeXl (fName, listDict):
   cDola = [(keys.index(i) + 1) for i in ['Maintenance Fee', 'Price']]
 
   # Build/write rows
-  i = 2
+  r = 2
   for d in listDict:
+    # Append row
     row = [d[k.lower()] for k in keys]
     ws.append(row)
-    ws.cell(row=i, column=cUrl).hyperlink = ws.cell(row=i, column=cUrl).value
-    ws.cell(row=i, column=cUrl).style = 'Hyperlink'
+
+    # Format URL
+    ws.cell(row=r, column=cUrl).hyperlink = ws.cell(row=r, column=cUrl).value
+    ws.cell(row=r, column=cUrl).style = 'Hyperlink'
+
+    # Format numbers
     for c in cNums+cDola:
-      s = ws.cell(row=i, column=c).value
-      if s != 'NA':
-        ws.cell(row=i , column=c).value = s2v(s)
+      s = ws.cell(row=r, column=c).value
+      try:
+        ws.cell(row=r, column=c).value = s2v(s)
+      except:
+        ws.cell(row=r, column=c).value = s
+
+    # Format dollars
     for c in cDola:
-      ws.cell(row=i, column=c).number_format = '$#,##0.00_);[Red]($#,##0.00)'
-    i += 1
+      ws.cell(row=r, column=c).number_format = '$#,##0.00_);[Red]($#,##0.00)'
+
+    # Next row
+    r += 1
 
   wb.save(fName)
   return 'Ok!'
