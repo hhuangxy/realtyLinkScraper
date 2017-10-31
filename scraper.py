@@ -155,19 +155,26 @@ def parseInfo (infoDesc, listInfo):
   # Initialize dictionary
   info = {d: 'NA' for d in infoDesc}
 
-  # Find starting index and description
+  # Find first and mls index
+  fstIdx = 0
+  mlsIdx = 0
   for i, val in enumerate(listInfo):
     if (val != '') and (not val.startswith(':')):
+      if fstIdx == 0:
+        fstIdx = i
+
       if val.lower() == 'mls':
-        # No description
-        info['description'] = 'NA'
-      else:
-        info['description'] = listInfo[i]
-        i += 1 # To re-align MLS
-      break
+        mlsIdx = i
+        break
+
+  # Fill description
+  if fstIdx == mlsIdx:
+    info['description'] = 'NA'
+  else:
+    info['description'] = ' '.join(listInfo[fstIdx:mlsIdx])
 
   # Fill dictionary
-  for key, val in zip(listInfo[i::2], listInfo[i+1::2]):
+  for key, val in zip(listInfo[mlsIdx::2], listInfo[mlsIdx+1::2]):
     key = key.lower().replace(':', '')
 
     for d in infoDesc:
