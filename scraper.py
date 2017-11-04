@@ -78,6 +78,7 @@ def generatePayload (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
     'RSPP'  : '5',
   }
 
+  # Return combined dictionaries together
   return {**payload, **genPyldArea(area), **genPyldType(type)}
 
 
@@ -87,17 +88,16 @@ def generateDetails (html):
 
   baseUrl = 'http://www.realtylink.org/prop_search/Detail.cfm?'
   rExp    = re.compile(r'MLS=([a-z0-9]+)', re.I)
-  details = []
-  seen    = []
+  details = set()
 
   listRaw = html.xpath("//@href[starts-with(., 'Detail.cfm')]")
   for raw in listRaw:
     match = rExp.search(raw)
-    if (match is not None) and (match.group(0) not in seen):
-      seen.append(match.group(0))
-      details.append(baseUrl + match.group(0))
+    if match is not None:
+      details.add(baseUrl + match.group(0))
 
-  return details
+  # Return set as list
+  return list(details)
 
 
 def generateNext (html):
@@ -105,7 +105,7 @@ def generateNext (html):
   """
 
   baseUrl = 'http://www.realtylink.org/prop_search/'
-  next    = ''
+  next    = None
 
   img = html.find(".//img[@src='images/property_next.gif']")
   if img is not None:
@@ -145,13 +145,12 @@ def parseInfo (infoDesc, listInfo):
   fstIdx = 0
   mlsIdx = 0
   for i, val in enumerate(listInfo):
-    if (val != '') and (not val.startswith(':')):
-      if fstIdx == 0:
-        fstIdx = i
+    if (fstIdx == 0) and (val != ''):
+      fstIdx = i
 
-      if val.lower() == 'mls':
-        mlsIdx = i
-        break
+    if val.lower() == 'mls':
+      mlsIdx = i
+      break
 
   # Fill description
   if fstIdx == mlsIdx:
@@ -163,10 +162,8 @@ def parseInfo (infoDesc, listInfo):
   for key, val in zip(listInfo[mlsIdx::2], listInfo[mlsIdx+1::2]):
     key = key.lower().replace(':', '')
 
-    for d in infoDesc:
-      if d == key:
-        info[d] = val
-        break
+    if key in infoDesc:
+      info[key] = val
 
   return info
 
@@ -333,21 +330,17 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
   # Build payload
   payload = generatePayload(area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc)
 
-  first       = True
   numBytes    = 0
   listDetails = []
   nextUrl     = 'http://www.realtylink.org/prop_search/Summary.cfm'
   log         = [('%s %s' % (area, type)).title()]
 
-  # Get pages
-  while nextUrl != '':
-    if first:
-      page = getPage(nextUrl, payload)
-      log.append(page.url.replace('%2C', ','))
-      first = False
-    else:
-      page = getPage(nextUrl)
+  # Get first page
+  page = getPage(nextUrl, payload)
+  log.append(page.url.replace('%2C', ','))
 
+  # Parse and get the next page
+  while True:
     # Calculate number of bytes
     numBytes += len(page.text)
 
@@ -357,6 +350,10 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
     # Parse HTML
     listDetails += generateDetails(html)
     nextUrl = generateNext(html)
+    if nextUrl is not None:
+      page = getPage(nextUrl)
+    else:
+      break
 
   # Get each page with details
   info = []
