@@ -12,34 +12,27 @@ def genPyldArea (area):
 
   baseUrl = 'http://www.realtylink.org/prop_search/AreaSelect.cfm?Branch=True'
 
-  if   area.lower() == 'burnaby':
-    imdp = '11'
+  areaLut = {
+    'burnaby'        : 11,
+    'coquitlam'      : 16,
+    'newwestminster' : 12,
+    'portcoquitlam'  : 17,
+    'portmoody'      : 15,
+    'richmond'       : 13,
+    'vancouver'      : 10,
+  }
 
-  elif area.lower() == 'coquitlam':
-    imdp = '16'
-
-  elif area.lower() == 'newwestminster':
-    imdp = '12'
-
-  elif area.lower() == 'portcoquitlam':
-    imdp = '17'
-
-  elif area.lower() == 'portmoody':
-    imdp = '15'
-
-  elif area.lower() == 'richmond':
-    imdp = '13'
-
-  elif area.lower() == 'vancouver':
-    imdp = '10'
-
+  # Look up area value
+  key = area.lower()
+  if key in areaLut:
+    imdp = areaLut[key]
   else:
     raise
 
   # Post and generate area ID list
   r = requests.post(baseUrl, data={'ERTA' : imdp})
   match = re.search(r'AIDL=(.*?)&', r.url, re.I)
-  if match:
+  if match is not None:
     AIDL = match.group(1)
   else:
     raise
@@ -51,31 +44,24 @@ def genPyldType (type):
   """Generates payload - type
   """
 
-  if   type.lower() == 'apartment':
-    payload = {
-      'PTYTID' : 1,
-    }
-  elif type.lower() == 'townhouse':
-    payload = {
-      'PTYTID' : 2,
-    }
-  elif type.lower() == 'house':
-    payload = {
-      'PTYTID' : 5,
-    }
+  typeLut = {
+    'apartment' : 1,
+    'townhouse' : 2,
+    'house'     : 5,
+  }
+
+  # Look up type value
+  key = type.lower()
+  if key in typeLut:
+    ptytid = typeLut[key]
   else:
     raise
 
-  return payload
+  return {'PTYTID' : ptytid}
 
 
-def generatePayload (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
+def generatePayload (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
   """Generates payload
-
-  Args:
-      area:
-  Returns:
-      payload
   """
 
   payload = {
@@ -89,10 +75,10 @@ def generatePayload (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
     'MXPRC' : mxprc,
     'SCTP'  : 'RS',
     'BCD'   : 'GV',
-    'RSPP'  : '5'
+    'RSPP'  : '5',
   }
 
-  return {**payload, **genPyldArea(area), **genPyldType(ptytid)}
+  return {**payload, **genPyldArea(area), **genPyldType(type)}
 
 
 def generateDetails (html):
@@ -107,7 +93,7 @@ def generateDetails (html):
   listRaw = html.xpath("//@href[starts-with(., 'Detail.cfm')]")
   for raw in listRaw:
     match = rExp.search(raw)
-    if match and (match.group(0) not in seen):
+    if (match is not None) and (match.group(0) not in seen):
       seen.append(match.group(0))
       details.append(baseUrl + match.group(0))
 
@@ -122,7 +108,7 @@ def generateNext (html):
   next    = ''
 
   img = html.find(".//img[@src='images/property_next.gif']")
-  if img != None:
+  if img is not None:
     a = img.getparent()
     next = baseUrl + a.attrib['href']
 
@@ -340,18 +326,18 @@ def writeXl (fName, listDict):
   return 'Ok!'
 
 
-def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
+def traversePages (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
   """Dive deep into the web
   """
 
   # Build payload
-  payload = generatePayload(area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc)
+  payload = generatePayload(area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc)
 
   first       = True
   numBytes    = 0
   listDetails = []
   nextUrl     = 'http://www.realtylink.org/prop_search/Summary.cfm'
-  log         = [('%s %s' % (area, ptytid)).title()]
+  log         = [('%s %s' % (area, type)).title()]
 
   # Get pages
   while nextUrl != '':
@@ -392,44 +378,45 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, ptytid, mnprc, mxprc):
   return log, info
 
 
-# Output directory
-timeStamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-os.mkdir(timeStamp)
+if __name__ == '__main__':
+  # Output directory
+  timeStamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+  os.mkdir(timeStamp)
 
-# Area list
-areaList = ['burnaby', 'coquitlam', 'newWestminster', 'portCoquitlam', 'portMoody', 'richmond', 'vancouver']
+  # Area list
+  areaList = ['burnaby', 'coquitlam', 'newWestminster', 'portCoquitlam', 'portMoody', 'richmond', 'vancouver']
 
-# Type list
-typeList = ['apartment', 'townhouse', 'house']
+  # Type list
+  typeList = ['apartment', 'townhouse', 'house']
 
-# Min/max age
-MNAGE = 0
-MXAGE = 35
+  # Min/max age
+  MNAGE = 0
+  MXAGE = 35
 
-# Min bedroom
-MNBD = 2
+  # Min bedroom
+  MNBD = 2
 
-# Min bathroom
-MNBT = 0
+  # Min bathroom
+  MNBT = 0
 
-# Min/max price
-MNPRC = 0
-MXPRC = 500000
+  # Min/max price
+  MNPRC = 0
+  MXPRC = 500000
 
-log  = []
-info = []
-for AREA in areaList:
-  for PTYTID in typeList:
-    tLog, tInfo = traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, PTYTID, MNPRC, MXPRC)
-    log  += tLog
-    info += tInfo
+  log  = []
+  info = []
+  for AREA in areaList:
+    for TYPE in typeList:
+      tLog, tInfo = traversePages(AREA, MNAGE, MXAGE, MNBD, MNBT, TYPE, MNPRC, MXPRC)
+      log  += tLog
+      info += tInfo
 
-# Setup logging
-with open('%s/%s_log.txt' % (timeStamp, timeStamp), 'w') as fLog:
-  fLog.write('\n'.join(log))
+  # Setup logging
+  with open('%s/%s_log.txt' % (timeStamp, timeStamp), 'w') as fLog:
+    fLog.write('\n'.join(log))
 
-# Create csv
-if info:
-  #writeCsv('%s/%s.csv' % (timeStamp, timeStamp), info)
-  writeXl('%s/%s.xlsx' % (timeStamp, timeStamp), info)
+  # Create csv
+  if info:
+    #writeCsv('%s/%s.csv' % (timeStamp, timeStamp), info)
+    writeXl('%s/%s.xlsx' % (timeStamp, timeStamp), info)
 
