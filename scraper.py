@@ -280,26 +280,46 @@ def writeXl (fName, listDict):
   wb = openpyxl.Workbook()
   ws = wb.active
 
-  # Get header
+  # Get and write header
   keys = [k.title() for k in list(listDict[0])]
+  keys.append('Maintenance Fee/Sq Ft')
+  keys.append('Price/Sq Ft')
   keys = sorted(keys)
-  cUrl = keys.index('Url') + 1
   ws.append(keys)
 
-  # Format
+  # Get column indices
+  cFFA = keys.index('Finished Floor Area') + 1
+  cFee = keys.index('Maintenance Fee') + 1
+  cFSF = keys.index('Maintenance Fee/Sq Ft') + 1
+  cPrc = keys.index('Price') + 1
+  cPSF = keys.index('Price/Sq Ft') + 1
+
+  # Get column letters
+  clFFA = openpyxl.utils.get_column_letter(cFFA)
+  clFee = openpyxl.utils.get_column_letter(cFee)
+  clPrc = openpyxl.utils.get_column_letter(cPrc)
+
+  # Get format indices
+  cUrl = keys.index('Url') + 1
   cNums = [(keys.index(i) + 1) for i in ['Age', 'Bedrooms', 'Finished Floor Area']]
-  cDola = [(keys.index(i) + 1) for i in ['Maintenance Fee', 'Price']]
+  cDola = [(keys.index(i) + 1) for i in ['Maintenance Fee', 'Maintenance Fee/Sq Ft', 'Price', 'Price/Sq Ft']]
 
   # Build/write rows
   r = 2
   for d in listDict:
     # Append row
-    row = [d[k.lower()] for k in keys]
+    row = [d[k.lower()] if k.lower() in d else 0 for k in keys]
     ws.append(row)
 
     # Format URL
     ws.cell(row=r, column=cUrl).hyperlink = ws.cell(row=r, column=cUrl).value
     ws.cell(row=r, column=cUrl).style = 'Hyperlink'
+
+    # Calculate Maintenance Fee/Sq Ft
+    ws.cell(row=r, column=cFSF).value = '=%s%s/%s%s' % (clFee, r, clFFA, r)
+
+    # Calculate Price/Sq Ft
+    ws.cell(row=r, column=cPSF).value = '=%s%s/%s%s' % (clPrc, r, clFFA, r)
 
     # Format numbers
     for c in cNums+cDola:
@@ -384,17 +404,17 @@ typeList = ['apartment', 'townhouse', 'house']
 
 # Min/max age
 MNAGE = 0
-MXAGE = 10
+MXAGE = 35
 
 # Min bedroom
-MNBD = 0
+MNBD = 2
 
 # Min bathroom
 MNBT = 0
 
 # Min/max price
 MNPRC = 0
-MXPRC = 450000
+MXPRC = 500000
 
 log  = []
 info = []
