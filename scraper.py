@@ -157,6 +157,7 @@ def parseInfo (infoDesc, listInfo):
     info['description'] = 'NA'
   else:
     info['description'] = ' '.join(listInfo[fstIdx:mlsIdx])
+    info['description'] = ' '.join(info['description'].split()).lstrip(': ')
 
   # Fill dictionary
   for key, val in zip(listInfo[mlsIdx::2], listInfo[mlsIdx+1::2]):
@@ -271,21 +272,20 @@ def writeXl (fName, listDict):
   ws.append(keys)
 
   # Get column indices
-  cFFA = keys.index('Finished Floor Area') + 1
-  cFee = keys.index('Maintenance Fee') + 1
-  cFSF = keys.index('Maintenance Fee/Sq Ft') + 1
-  cPrc = keys.index('Price') + 1
-  cPSF = keys.index('Price/Sq Ft') + 1
+  cIdx = {k : keys.index(k) + 1 for k in keys}
+  cFSF = cIdx['Maintenance Fee/Sq Ft']
+  cPSF = cIdx['Price/Sq Ft']
 
   # Get column letters
-  clFFA = openpyxl.utils.get_column_letter(cFFA)
-  clFee = openpyxl.utils.get_column_letter(cFee)
-  clPrc = openpyxl.utils.get_column_letter(cPrc)
+  cLet  = {ci : openpyxl.utils.get_column_letter(cIdx[ci]) for ci in cIdx}
+  clFFA = cLet['Finished Floor Area']
+  clFee = cLet['Maintenance Fee']
+  clPrc = cLet['Price']
 
   # Get format indices
-  cUrl = keys.index('Url') + 1
-  cNums = [(keys.index(i) + 1) for i in ['Age', 'Bedrooms', 'Finished Floor Area']]
-  cDola = [(keys.index(i) + 1) for i in ['Maintenance Fee', 'Maintenance Fee/Sq Ft', 'Price', 'Price/Sq Ft']]
+  cUrl  = cIdx['Url']
+  cNums = [cIdx[i] for i in ['Age', 'Bedrooms', 'Finished Floor Area']]
+  cDola = [cIdx[i] for i in ['Maintenance Fee', 'Maintenance Fee/Sq Ft', 'Price', 'Price/Sq Ft']]
 
   # Build/write rows
   r = 2
