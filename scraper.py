@@ -19,7 +19,9 @@ def genPyldArea (area):
     'portcoquitlam'  : 17,
     'portmoody'      : 15,
     'richmond'       : 13,
-    'vancouver'      : 10,
+    'vancouvereast'  : 10,
+    'vancouverwest'  :  9,
+    'westvancouver'  : 19,
   }
 
   # Look up area value
@@ -259,6 +261,8 @@ def writeXl (fName, listDict):
 
   # String to Value
   s2v = lambda s: int(s) if ('.' not in s) else float(s.replace('$',''))
+  m2f = lambda l, s: l.insert(0, l.pop(l.index(s)))
+  m2e = lambda l, s: l.append(l.pop(l.index(s)))
 
   # Open file
   wb = openpyxl.Workbook()
@@ -269,6 +273,22 @@ def writeXl (fName, listDict):
   keys.append('Maintenance Fee/Sq Ft')
   keys.append('Price/Sq Ft')
   keys = sorted(keys)
+
+  # Shuffle
+  m2f(keys, 'Bedrooms')
+  m2f(keys, 'Age')
+  m2f(keys, 'Area')
+  m2f(keys, 'Property Type')
+
+  m2e(keys, 'Address')
+  m2e(keys, 'Mls')
+  m2e(keys, 'Basement')
+  m2e(keys, 'Lot Depth')
+  m2e(keys, 'Lot Frontage')
+  m2e(keys, 'Description')
+  m2e(keys, 'Features')
+
+  # Append row
   ws.append(keys)
 
   # Get column indices
@@ -381,7 +401,7 @@ if __name__ == '__main__':
   os.mkdir(timeStamp)
 
   # Area list
-  areaList = ['burnaby', 'coquitlam', 'newWestminster', 'portCoquitlam', 'portMoody', 'richmond', 'vancouver']
+  areaList = ['burnaby', 'coquitlam', 'newWestminster', 'portCoquitlam', 'portMoody', 'richmond', 'vancouverEast', 'vancouverWest', 'westVancouver']
 
   # Type list
   typeList = ['apartment', 'townhouse', 'house']
@@ -398,7 +418,7 @@ if __name__ == '__main__':
 
   # Min/max price
   MNPRC = 0
-  MXPRC = 500000
+  MXPRC = 600000
 
   log  = []
   info = []
