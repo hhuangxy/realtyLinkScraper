@@ -397,6 +397,7 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
   if not info:
     log.append('    No properties were found')
   else:
+    log.append('%6s properties were found' % len(info))
 
   return log, info
 
