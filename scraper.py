@@ -1,3 +1,4 @@
+from time import sleep
 from lxml import etree
 import requests
 import re
@@ -32,7 +33,7 @@ def genPyldArea (area):
     raise
 
   # Post and generate area ID list
-  r = requests.post(baseUrl, data={'ERTA' : imdp})
+  r = requests.post(baseUrl, data={'ERTA' : imdp}, headers={'User-Agent' : 'Mozilla/5.0'})
   match = re.search(r'AIDL=(.*?)&', r.url, re.I)
   if match is not None:
     AIDL = match.group(1)
@@ -121,7 +122,11 @@ def getPage (url, payload=None):
   """Go get page
   """
 
-  page = requests.get(url, params=payload)
+  # Delay to prevent being blocked
+  sleep(0.1)
+
+  page = requests.get(url, params=payload, headers={'User-Agent' : 'Mozilla/5.0'})
+  print('.', end='', flush=True)
 
   return page
 
@@ -391,6 +396,7 @@ def traversePages (area, mnage, mxage, mnbd, mnbt, type, mnprc, mxprc):
   # Check empty info
   if not info:
     log.append('    No properties were found')
+  else:
 
   return log, info
 
@@ -437,3 +443,5 @@ if __name__ == '__main__':
     #writeCsv('%s/%s.csv' % (timeStamp, timeStamp), info)
     writeXl('%s/%s.xlsx' % (timeStamp, timeStamp), info)
 
+  print('')
+  print('--- D O N E ---')
