@@ -260,6 +260,21 @@ def writeCsv (fName, listDict):
   return 'Ok!'
 
 
+def isNumeric (inVar):
+  """How is this not already a Python function
+  """
+
+  try:
+    inVar = float(inVar)
+  except:
+    try:
+      inVar = float(inVar.replace('$',''))
+    except:
+      return False
+
+  return (inVar != 0)
+
+
 def writeXl (fName, listDict):
   """Turn list of dictionary into Excel
   """
@@ -275,6 +290,8 @@ def writeXl (fName, listDict):
 
   # Get and write header
   keys = [k.title() for k in list(listDict[0])]
+  #keys.append('Maintenance Fee/Age')
+  #keys.append('Price/Age')
   keys.append('Maintenance Fee/Sq Ft')
   keys.append('Price/Sq Ft')
   keys = sorted(keys)
@@ -297,12 +314,20 @@ def writeXl (fName, listDict):
   ws.append(keys)
 
   # Get column indices
-  cIdx = {k : keys.index(k) + 1 for k in keys}
+  cIdx = {k : keys.index(k) + 1 for k in keys} # +1 for Excel alignment
+  cAge = cIdx['Age']
+  cFFA = cIdx['Finished Floor Area']
+  cFee = cIdx['Maintenance Fee']
+  cPrc = cIdx['Price']
+
+  #cFAG = cIdx['Maintenance Fee/Age']
+  #cPAG = cIdx['Price/Age']
   cFSF = cIdx['Maintenance Fee/Sq Ft']
   cPSF = cIdx['Price/Sq Ft']
 
   # Get column letters
   cLet  = {ci : openpyxl.utils.get_column_letter(cIdx[ci]) for ci in cIdx}
+  clAge = cLet['Age']
   clFFA = cLet['Finished Floor Area']
   clFee = cLet['Maintenance Fee']
   clPrc = cLet['Price']
@@ -323,11 +348,29 @@ def writeXl (fName, listDict):
     ws.cell(row=r, column=cUrl).hyperlink = ws.cell(row=r, column=cUrl).value
     ws.cell(row=r, column=cUrl).style = 'Hyperlink'
 
+    ## Calculate Maintenance Fee/Age
+    #if isNumeric(row[cAge-1]) and isNumeric(row[cFee-1]):
+    #  ws.cell(row=r, column=cFAG).value = '=%s%s/%s%s' % (clFee, r, clAge, r)
+    #else:
+    #  ws.cell(row=r, column=cFAG).value = 'NA'
+    #
+    ## Calculate Price/Age
+    #if isNumeric(row[cAge-1]) and isNumeric(row[cPrc-1]):
+    #  ws.cell(row=r, column=cPAG).value = '=%s%s/%s%s' % (clPrc, r, clAge, r)
+    #else:
+    #  ws.cell(row=r, column=cPAG).value = 'NA'
+
     # Calculate Maintenance Fee/Sq Ft
-    ws.cell(row=r, column=cFSF).value = '=%s%s/%s%s' % (clFee, r, clFFA, r)
+    if isNumeric(row[cFFA-1]) and isNumeric(row[cFee-1]):
+      ws.cell(row=r, column=cFSF).value = '=%s%s/%s%s' % (clFee, r, clFFA, r)
+    else:
+      ws.cell(row=r, column=cFSF).value = 'NA'
 
     # Calculate Price/Sq Ft
-    ws.cell(row=r, column=cPSF).value = '=%s%s/%s%s' % (clPrc, r, clFFA, r)
+    if isNumeric(row[cFFA-1]) and isNumeric(row[cPrc-1]):
+      ws.cell(row=r, column=cPSF).value = '=%s%s/%s%s' % (clPrc, r, clFFA, r)
+    else:
+      ws.cell(row=r, column=cPSF).value = 'NA'
 
     # Format numbers
     for c in cNums+cDola:
